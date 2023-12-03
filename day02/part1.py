@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import re
 import os.path
+import re
 
 import pytest
 
@@ -10,6 +10,7 @@ import support
 
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 LIMITS = {'red': 12, 'green': 13, 'blue': 14}
+
 
 def compute(s: str) -> int:
     lines = s.splitlines()

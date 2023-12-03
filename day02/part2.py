@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import re
 import math
 import os.path
+import re
 
 import pytest
 
@@ -12,11 +12,11 @@ import support
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 LIMITS = {'red': 12, 'green': 13, 'blue': 14}
 
+
 def compute(s: str) -> int:
     lines = s.splitlines()
     powers = 0
     for line in lines:
-        game_num = int(re.findall(r'Game (\d+):', line)[0])
         sets = re.findall(r':(.+)', line)[0].split(';')
         min_cubes = {}
         for s in sets:

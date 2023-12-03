@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import regex as re
 import os.path
 
 import pytest
+import regex as re
 
 import support
 
@@ -13,7 +13,7 @@ INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 
 def compute(s: str) -> int:
     ret = 0
-    
+
     dct = {
         'one': '1',
         'two': '2',
@@ -25,17 +25,18 @@ def compute(s: str) -> int:
         'eight': '8',
         'nine': '9',
     }
-    
-    
+
     lines = s.splitlines()
     for line in lines:
         nums = re.findall(
-            r'\d|one|two|three|four|five|six|seven|eight|nine', 
-            line, 
-            overlapped=True)
+            r'\d|one|two|three|four|five|six|seven|eight|nine',
+            line,
+            overlapped=True,
+        )
         vals = [dct.get(x, x) for x in nums]
-        ret += int(vals[0] + vals[-1]) 
+        ret += int(vals[0] + vals[-1])
     return ret
+
 
 INPUT_S = '''\
 two1nine
