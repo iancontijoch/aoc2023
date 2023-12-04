@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import os.path
-from typing import Generator
 
 import pytest
 
@@ -11,7 +10,11 @@ import support
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
 
 
-def count_cards(card_num: int, card_matches_dct: dict[int, set[int]], card_num_copies: dict[int, int]):
+def count_cards(
+    card_num: int,
+    card_matches_dct: dict[int, set[int]],
+    card_num_copies: dict[int, int],
+) -> None:
     neighbors = card_matches_dct[card_num]
     if not neighbors:
         return
@@ -22,21 +25,20 @@ def count_cards(card_num: int, card_matches_dct: dict[int, set[int]], card_num_c
 
 
 def compute(s: str) -> int:
-    total = 0
     card_matches, card_num_matches, card_num_copies = {}, {}, {}
     lines = s.splitlines()
-    total = len(lines)
-    print(len(lines))
     for line in lines:
         card_s, rest = line.split(': ')
         card_num = int(card_s.split()[1])
         winning_s, nums_s = rest.split(' | ')
 
         num_matches = len(
-            set(winning_s.split()).intersection(set(nums_s.split())))
+            set(winning_s.split()).intersection(set(nums_s.split())),
+        )
         card_num_matches[card_num] = num_matches
         card_matches[card_num] = set(
-            range(card_num + 1, card_num + num_matches + 1))
+            range(card_num + 1, card_num + num_matches + 1),
+        )
         card_num_copies[card_num] = 1  # assign original copy
 
     for card_num in card_matches:
