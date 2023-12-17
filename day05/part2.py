@@ -1,21 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import os.path
+import re
+from enum import auto
+from enum import Enum
 
 import pytest
-import re
-import itertools
-import math
-from line_profiler import profile
-from typing import Generator, NamedTuple
-from collections import deque, defaultdict
-from enum import Enum, auto
-from functools import total_ordering
 
 import support
 
 INPUT_TXT = os.path.join(os.path.dirname(__file__), 'input.txt')
+
 
 class Category(Enum):
     SEED = auto()
@@ -27,18 +24,21 @@ class Category(Enum):
     HUMIDITY = auto()
     LOCATION = auto()
 
-def get_seed_num(loc_num: int, 
-                 maps: dict[tuple[Category, Category], list[tuple[range, range]]]) -> int:
+
+def get_seed_num(
+    loc_num: int,
+    maps: dict[tuple[Category, Category], list[tuple[range, range]]],
+) -> int:
     """Get the destination number of a given source."""
     for dst, src in itertools.pairwise(reversed(Category)):
         dst_src_map = maps[(src, dst)]
-        loc_num = backpropagate(loc_num, dst_src_map)  
+        loc_num = backpropagate(loc_num, dst_src_map)
         if loc_num < 0:
-            break  
+            break
     return loc_num
 
 
-def binary_search_ranges(src_num: int, rngs: list[range]):
+def binary_search_ranges(src_num: int, rngs: list[range]) -> bool:
     left, right = 0, len(rngs) - 1
     while left <= right:
         mid = left + (right - left) // 2
@@ -53,7 +53,7 @@ def binary_search_ranges(src_num: int, rngs: list[range]):
     return False
 
 
-def percolate(src_num: int, rngs: list[range]):
+def percolate(src_num: int, rngs: list[tuple[range, range]]) -> int:
     left, right = 0, len(rngs) - 1
     while left <= right:
         mid = left + (right - left) // 2
@@ -68,7 +68,7 @@ def percolate(src_num: int, rngs: list[range]):
     return src_num
 
 
-def backpropagate(src_num: int, rngs: list[range]):
+def backpropagate(src_num: int, rngs: list[tuple[range, range]]) -> int:
     left, right = 0, len(rngs) - 1
     while left <= right:
         mid = left + (right - left) // 2
@@ -83,51 +83,77 @@ def backpropagate(src_num: int, rngs: list[range]):
     return src_num
 
 
-def add_initial_range(rngs: set[range]):
+def add_initial_range(
+    rngs: list[tuple[range, range]],
+) -> list[tuple[range, range]]:
     smallest = min(r[0].start for r in rngs)
     if smallest != 0:
-        rngs.add((range(smallest), range(smallest),))
-    else:
-        return rngs
+        rngs.append((range(smallest), range(smallest)))
+
+    return rngs
 
 
 def compute(s: str) -> int:
-    seeds = tuple(int(x) for x in re.search(r'seeds: (.+)', s).group(1).split())
+    seeds_match = re.search(r'seeds: (.+)', s)
+    assert seeds_match is not None
+    seeds = tuple(
+        int(x)
+        for x in seeds_match.group(1).split()
+    )
     seeds_rngs = [
-        range(rng_start, rng_start + rng_len) 
-        for rng_start, rng_len 
-        in tuple(zip(seeds[::2], seeds[1::2]))]
+        range(rng_start, rng_start + rng_len)
+        for rng_start, rng_len
+        in tuple(zip(seeds[::2], seeds[1::2]))
+    ]
 
-    maps = {}
-    
+    maps: dict[tuple[Category, Category], list[tuple[range, range]]] = {}
+
     for source, destination in itertools.pairwise(Category):
-        maps[(source, destination)] = set()
-        rng_s = re.search(rf'{source.name.lower()}-to-{destination.name.lower()} map:([\s\d]+)', s).group(1).strip().split('\n')
+        maps[(source, destination)] = []
+        pattern = (
+            f'{source.name.lower()}-to-{destination.name.lower()} '
+            r'map:([\s\d]+)'
+        )
+        match_rngs = re.search(pattern, s)
+        assert match_rngs is not None
+
+        rng_s = match_rngs.group(1).strip().split('\n')
         rng_lst = tuple(tuple(map(int, r.split())) for r in rng_s)
 
         for r in rng_lst:
             dst_rng_start, src_rng_start, rng_len = r
             dst_rng = range(dst_rng_start, dst_rng_start + rng_len)
             src_rng = range(src_rng_start, src_rng_start + rng_len)
-            maps[(source, destination)].add((src_rng, dst_rng,))
-        
-        add_initial_range(maps[(source, destination)])
+            maps[(source, destination)].append((src_rng, dst_rng))
+
+        maps[(source, destination)] = add_initial_range(
+            maps[(source, destination)],
+        )
 
     # sort maps by dest
     for k, v in maps.items():
         maps[k] = sorted(v, key=lambda x: x[1].start)
 
     # sort location and seed ranges
-    sorted_location_rngs = sorted((v for _, v in maps[(Category.HUMIDITY, Category.LOCATION)]), key=lambda x: x.start)
+    sorted_location_rngs = sorted(
+        (
+            v for _, v in maps[(
+                Category.HUMIDITY, Category.LOCATION,
+            )]
+        ), key=lambda x: x.start,
+    )
     sorted_seeds_rngs = sorted(seeds_rngs, key=lambda x: x[0])
 
-    # start with smallest locations and backpropagate to find their intial seed number.
+    # start with smallest locations
+    # and backpropagate to find their intial seed number.
     for location_rng in sorted_location_rngs:
         for location_num in location_rng:
             seed_num = get_seed_num(loc_num=location_num, maps=maps)
             # return first within the initial ranges
-            if binary_search_ranges(seed_num, sorted_seeds_rngs):  
-                return location_num  
+            if binary_search_ranges(seed_num, sorted_seeds_rngs):
+                return location_num
+
+    return 0
 
 
 INPUT_S = '''\
@@ -177,6 +203,7 @@ EXPECTED = 46
 def test(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('data_file', nargs='?', default=INPUT_TXT)
@@ -190,5 +217,3 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
-    # raise SystemExit(test(INPUT_S, EXPECTED))
-
