@@ -53,29 +53,15 @@ def binary_search_ranges(src_num: int, rngs: list[range]) -> bool:
     return False
 
 
-def percolate(src_num: int, rngs: list[tuple[range, range]]) -> int:
-    left, right = 0, len(rngs) - 1
-    while left <= right:
-        mid = left + (right - left) // 2
-        src_rng, dst_rng = rngs[mid]
-
-        if src_num in src_rng:
-            return dst_rng.start + (src_num - src_rng.start)
-        elif src_num < src_rng.start:
-            right = mid - 1
-        else:
-            left = mid + 1
-    return src_num
-
-
 def backpropagate(src_num: int, rngs: list[tuple[range, range]]) -> int:
+    """Find source range mapping to a given destination value and get val."""
     left, right = 0, len(rngs) - 1
     while left <= right:
         mid = left + (right - left) // 2
         src_rng, dst_rng = rngs[mid]
 
         if src_num in dst_rng:
-            return src_rng.start + (src_num - dst_rng.start)
+            return src_rng.start + (src_num - dst_rng.start)  # conversion
         elif src_num < dst_rng.start:
             right = mid - 1
         else:
@@ -86,6 +72,7 @@ def backpropagate(src_num: int, rngs: list[tuple[range, range]]) -> int:
 def add_initial_range(
     rngs: list[tuple[range, range]],
 ) -> list[tuple[range, range]]:
+    """Add range from 0 to smallest number if missing."""
     smallest = min(r[0].start for r in rngs)
     if smallest != 0:
         rngs.append((range(smallest), range(smallest)))
@@ -121,9 +108,10 @@ def compute(s: str) -> int:
         rng_lst = tuple(tuple(map(int, r.split())) for r in rng_s)
 
         for r in rng_lst:
+            # build source and mapped destination ranges using input
             dst_rng_start, src_rng_start, rng_len = r
-            dst_rng = range(dst_rng_start, dst_rng_start + rng_len)
             src_rng = range(src_rng_start, src_rng_start + rng_len)
+            dst_rng = range(dst_rng_start, dst_rng_start + rng_len)
             maps[(source, destination)].append((src_rng, dst_rng))
 
         maps[(source, destination)] = add_initial_range(
@@ -134,7 +122,7 @@ def compute(s: str) -> int:
     for k, v in maps.items():
         maps[k] = sorted(v, key=lambda x: x[1].start)
 
-    # sort location and seed ranges
+    # sort location and seed ranges in ascending start order
     sorted_location_rngs = sorted(
         (
             v for _, v in maps[(
@@ -149,7 +137,7 @@ def compute(s: str) -> int:
     for location_rng in sorted_location_rngs:
         for location_num in location_rng:
             seed_num = get_seed_num(loc_num=location_num, maps=maps)
-            # return first within the initial ranges
+            # return first location with a seed in the initial ranges
             if binary_search_ranges(seed_num, sorted_seeds_rngs):
                 return location_num
 
