@@ -25,10 +25,10 @@ def compute(s: str) -> int:
                 break
         seqs = list(reversed(seqs))
         for i in range(len(seqs)):
-            seqs[i] = [0] + seqs[i] if i == 0 else [
-                seqs[i]
-                [0] - seqs[i-1][0],
-            ] + seqs[i]
+            seqs[i] = (
+                [0] + seqs[i] if i == 0
+                else [seqs[i][0] - seqs[i-1][0]] + seqs[i]
+            )
         ret += seqs[-1][0]
     return ret
 
